@@ -44,3 +44,5 @@ httpx>=0.28.0
 
 # Rate Limiting
 slowapi>=0.1.9
+
+huggingface_hub>=0.24.0
