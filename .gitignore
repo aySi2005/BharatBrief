@@ -28,3 +28,7 @@ backend/model/
 # OS files
 .DS_Store
 Thumbs.db
+
+backend/model/
+backend/venv/
+*.db

@@ -1,93 +1,135 @@
-"""T5 Model Service - Core inference engine."""
+"""BharatBrief T5 Model Service - ONNX Runtime inference engine."""
 
 import hashlib
 import logging
 import os
 
-import torch
 from cachetools import LRUCache
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import AutoTokenizer
+from optimum.onnxruntime import ORTModelForSeq2SeqLM
 
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 LENGTH_PRESETS = {
-    "short": {"max_length": 60, "min_length": 15, "length_penalty": 1.0},
-    "medium": {"max_length": 128, "min_length": 30, "length_penalty": 1.0},
-    "detailed": {"max_length": 256, "min_length": 60, "length_penalty": 0.8},
+    "short": {
+        "max_length": 60,
+        "min_length": 15,
+        "length_penalty": 1.0,
+    },
+    "medium": {
+        "max_length": 128,
+        "min_length": 30,
+        "length_penalty": 1.0,
+    },
+    "detailed": {
+        "max_length": 256,
+        "min_length": 60,
+        "length_penalty": 0.8,
+    },
 }
 
-HF_MODEL_ID = "Ayush1082/BharatBrief-T5"
+HF_MODEL_ID = "Ayush1082/BharatBrief-T5-INT8"
 
 
 class ModelService:
-    """Manages T5 model loading, inference, and caching."""
+    """Manages BharatBrief ONNX model loading and inference."""
 
     def __init__(self):
         self.model = None
         self.tokenizer = None
-        self.device = None
+        self.device = "cpu"
         self._cache = LRUCache(maxsize=256)
         self._is_loaded = False
 
     def load_model(self):
-        """Load the fine-tuned BharatBrief model."""
+        """Load BharatBrief ONNX INT8 model."""
 
         settings = get_settings()
 
-        # Use local model if it exists.
-        local_path = settings.MODEL_PATH
-
-        # On Render, use the Hugging Face model.
-        use_huggingface = os.getenv("USE_HUGGINGFACE_MODEL", "false").lower() == "true"
+        use_huggingface = (
+            os.getenv(
+                "USE_HUGGINGFACE_MODEL",
+                "false",
+            ).lower()
+            == "true"
+        )
 
         if use_huggingface:
+
+            logger.info(
+                f"Loading INT8 model from Hugging Face: "
+                f"{HF_MODEL_ID}"
+            )
+
             model_path = HF_MODEL_ID
-            logger.info(f"Loading model from Hugging Face: {model_path}")
-        else:
-            model_path = local_path
-            logger.info(f"Loading model from local path: {model_path}")
 
-        # Detect device.
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda")
-            logger.info("Using CUDA GPU for inference")
-        else:
-            self.device = torch.device("cpu")
-            logger.info("Using CPU for inference")
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path
+            )
 
-        # Load tokenizer and model.
-        if use_huggingface:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-            self.model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
+            self.model = ORTModelForSeq2SeqLM.from_pretrained(
+                model_path,
+                encoder_file_name="encoder_model.onnx",
+                decoder_file_name="decoder_model.onnx",
+                decoder_with_past_file_name=(
+                    "decoder_with_past_model.onnx"
+                ),
+                provider="CPUExecutionProvider",
+                use_io_binding=False,
+            )
+
         else:
+
+            model_path = os.path.join(
+                settings.MODEL_PATH,
+                "..",
+                "bharatbrief_onnx_int8",
+            )
+
+            model_path = os.path.abspath(model_path)
+
+            logger.info(
+                f"Loading INT8 model from local path: "
+                f"{model_path}"
+            )
+
             self.tokenizer = AutoTokenizer.from_pretrained(
                 model_path,
                 local_files_only=True,
             )
-            self.model = AutoModelForSeq2SeqLM.from_pretrained(
+
+            self.model = ORTModelForSeq2SeqLM.from_pretrained(
                 model_path,
-                local_files_only=True,
+                encoder_file_name="encoder_model.onnx",
+                decoder_file_name="decoder_model.onnx",
+                decoder_with_past_file_name=(
+                    "decoder_with_past_model.onnx"
+                ),
+                provider="CPUExecutionProvider",
+                use_io_binding=False,
             )
 
-        self.model.to(self.device)
-        self.model.eval()
-
         self._is_loaded = True
-        logger.info("Model loaded successfully")
+
+        logger.info(
+            "BharatBrief INT8 ONNX model loaded successfully"
+        )
 
     def warmup(self):
         """Run a small inference to warm up the model."""
 
         if not self._is_loaded:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+            raise RuntimeError(
+                "Model not loaded. Call load_model() first."
+            )
 
         logger.info("Warming up model...")
 
         dummy_text = (
-            "summarize: This is a warmup text used to initialize "
-            "the BharatBrief summarization model."
+            "summarize: This is a warmup text used "
+            "to initialize the BharatBrief model."
         )
 
         inputs = self.tokenizer(
@@ -97,19 +139,24 @@ class ModelService:
             truncation=True,
         )
 
-        inputs = {key: value.to(self.device) for key, value in inputs.items()}
-
-        with torch.no_grad():
-            self.model.generate(
-                inputs["input_ids"],
-                max_length=20,
-            )
+        self.model.generate(
+            **inputs,
+            max_length=20,
+        )
 
         logger.info("Model warmup complete")
 
-    def _get_cache_key(self, text: str, length: str) -> str:
+    def _get_cache_key(
+        self,
+        text: str,
+        length: str,
+    ) -> str:
+
         content = f"{text}::{length}"
-        return hashlib.md5(content.encode()).hexdigest()
+
+        return hashlib.md5(
+            content.encode()
+        ).hexdigest()
 
     def summarize(
         self,
@@ -120,18 +167,33 @@ class ModelService:
     ) -> str:
 
         if not self._is_loaded:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+            raise RuntimeError(
+                "Model not loaded. Call load_model() first."
+            )
 
-        cache_key = self._get_cache_key(text, length)
+        cache_key = self._get_cache_key(
+            text,
+            length,
+        )
 
         if cache_key in self._cache:
-            logger.debug("Cache hit for summary request")
+
+            logger.debug(
+                "Cache hit for summary request"
+            )
+
             return self._cache[cache_key]
 
         settings = get_settings()
-        preset = LENGTH_PRESETS.get(length, LENGTH_PRESETS["medium"])
 
-        input_text = f"{settings.MODEL_PREFIX} {text}"
+        preset = LENGTH_PRESETS.get(
+            length,
+            LENGTH_PRESETS["medium"],
+        )
+
+        input_text = (
+            f"{settings.MODEL_PREFIX} {text}"
+        )
 
         inputs = self.tokenizer(
             input_text,
@@ -141,19 +203,16 @@ class ModelService:
             padding=False,
         )
 
-        inputs = {key: value.to(self.device) for key, value in inputs.items()}
-
-        with torch.no_grad():
-            outputs = self.model.generate(
-                inputs["input_ids"],
-                max_length=preset["max_length"],
-                min_length=preset["min_length"],
-                num_beams=num_beams,
-                length_penalty=preset["length_penalty"],
-                no_repeat_ngram_size=no_repeat_ngram_size,
-                do_sample=False,
-                early_stopping=True,
-            )
+        outputs = self.model.generate(
+            **inputs,
+            max_length=preset["max_length"],
+            min_length=preset["min_length"],
+            num_beams=num_beams,
+            length_penalty=preset["length_penalty"],
+            no_repeat_ngram_size=no_repeat_ngram_size,
+            do_sample=False,
+            early_stopping=True,
+        )
 
         summary = self.tokenizer.decode(
             outputs[0],
@@ -163,12 +222,16 @@ class ModelService:
         self._cache[cache_key] = summary
 
         logger.debug(
-            f"Generated summary ({length}): {len(summary)} chars"
+            f"Generated summary ({length}): "
+            f"{len(summary)} chars"
         )
 
         return summary
 
-    def get_token_count(self, text: str) -> int:
+    def get_token_count(
+        self,
+        text: str,
+    ) -> int:
 
         if not self._is_loaded:
             return len(text.split())
