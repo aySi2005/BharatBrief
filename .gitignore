@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.venv/
+
+# Environment variables
+.env
+.env.local
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Frontend builds
+frontend/.next/
+frontend/out/
+
+# Backend Model & Large files
+backend/model/
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db

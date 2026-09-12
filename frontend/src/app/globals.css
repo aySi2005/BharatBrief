@@ -1,0 +1,248 @@
+/* ============================================================
+   Briefly — Global Styles
+   "Read less. Know more."
+   
+   Design System:
+   - Fonts: Instrument Serif (headings), Satoshi (body/UI)
+   - Light: warm off-white (#F7F5F2), charcoal text (#111111)
+   - Dark: elegant warm dark, soft contrast
+   - Accent: muted deep blue (#3B5BDB)
+   ============================================================ */
+
+@import "tailwindcss";
+
+/* ---- CSS Custom Properties (Design Tokens) ---- */
+:root {
+  /* Typography */
+ --font-serif: 'Poppins', system-ui, -apple-system, sans-serif;
+--font-sans: 'Poppins', system-ui, -apple-system, sans-serif;
+  
+  /* Light Theme */
+  --bg-primary: #F7F5F2;
+  --bg-secondary: #EFECE8;
+  --bg-tertiary: #E8E4DF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FAFAF8;
+  --bg-input: #FFFFFF;
+  --bg-code: #F0EDE8;
+  
+  --text-primary: #111111;
+  --text-secondary: #2E2E2E;
+  --text-tertiary: #6B6B6B;
+  --text-muted: #8B8B8B;
+  --text-inverse: #F7F5F2;
+  
+  --border-default: #D6D3D1;
+  --border-subtle: #E8E4DF;
+  --border-focus: #3B5BDB;
+  
+  --accent-primary: #3B5BDB;
+  --accent-primary-hover: #364FC7;
+  --accent-primary-light: rgba(59, 91, 219, 0.08);
+  --accent-secondary: #0F766E;
+  --accent-success: #16A34A;
+  --accent-warning: #D97706;
+  --accent-error: #DC2626;
+  
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.1);
+  
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+}
+
+/* ---- Dark Theme ---- */
+[data-theme="dark"] {
+  --bg-primary: #1A1A1D;
+  --bg-secondary: #212124;
+  --bg-tertiary: #2A2A2E;
+  --bg-card: #242428;
+  --bg-card-hover: #2C2C30;
+  --bg-input: #2A2A2E;
+  --bg-code: #2A2A2E;
+  
+  --text-primary: #F0EDE8;
+  --text-secondary: #D6D3D1;
+  --text-tertiary: #9A9A9A;
+  --text-muted: #6B6B6B;
+  --text-inverse: #111111;
+  
+  --border-default: #3A3A3E;
+  --border-subtle: #2E2E32;
+  --border-focus: #5C7CFA;
+  
+  --accent-primary: #5C7CFA;
+  --accent-primary-hover: #748FFC;
+  --accent-primary-light: rgba(92, 124, 250, 0.12);
+  
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.35);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+/* ---- Base Reset & Typography ---- */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.65;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ---- Selection ---- */
+::selection {
+  background-color: var(--accent-primary-light);
+  color: var(--accent-primary);
+}
+
+/* ---- Focus Ring ---- */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---- Animations ---- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Utility Classes ---- */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* ---- Typography Scale ---- */
+.text-display {
+  font-family: var(--font-serif);
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.text-heading-1 {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.text-heading-2 {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.text-heading-3 {
+  font-family: var(--font-serif);
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  line-height: 1.2;
+}
+
+.text-body-lg {
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+.text-body {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.text-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.text-caption {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+}
+
+.text-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
