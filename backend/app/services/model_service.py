@@ -50,12 +50,12 @@ class ModelService:
                     filename="model.bin",
                 )
 
-                config_file = hf_hub_download(
+                hf_hub_download(
                     repo_id=HF_MODEL_ID,
                     filename="config.json",
                 )
 
-                vocabulary_file = hf_hub_download(
+                hf_hub_download(
                     repo_id=HF_MODEL_ID,
                     filename="shared_vocabulary.json",
                 )
@@ -95,25 +95,30 @@ class ModelService:
             )
 
             self.model = self.translator
-
             self.loaded = True
 
-            logger.info("BharatBrief CTranslate2 INT8 model loaded successfully")
-
-            # ---------------------------------------------------------
-            # Warmup
-            # ---------------------------------------------------------
-            try:
-                self.summarize(
-                    "BharatBrief is an AI-powered article summarization system."
-                )
-                logger.info("Model warmup completed")
-            except Exception as warmup_error:
-                logger.warning(f"Warmup failed: {warmup_error}")
+            logger.info(
+                "BharatBrief CTranslate2 INT8 model loaded successfully"
+            )
 
         except Exception:
             logger.exception("Failed to load BharatBrief model")
             raise
+
+    def warmup(self):
+        """Run a small inference to initialize the model."""
+
+        if not self.loaded:
+            self.load_model()
+
+        try:
+            self.summarize(
+                "BharatBrief is an AI-powered article summarization system."
+            )
+            logger.info("Model warmup completed")
+
+        except Exception as warmup_error:
+            logger.warning(f"Warmup failed: {warmup_error}")
 
     def summarize(
         self,
