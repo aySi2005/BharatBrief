@@ -1,12 +1,13 @@
-"""BharatBrief T5 Model Service - ONNX Runtime inference engine."""
+"""BharatBrief T5 Model Service - low-memory ONNX inference."""
 
 import hashlib
 import logging
 import os
 
+import numpy as np
+import onnxruntime as ort
 from cachetools import LRUCache
 from transformers import AutoTokenizer
-from optimum.onnxruntime import ORTModelForSeq2SeqLM
 
 from app.config import get_settings
 
@@ -34,17 +35,35 @@ HF_MODEL_ID = "Ayush1082/BharatBrief-T5-INT8"
 
 
 class ModelService:
-    """Manages BharatBrief ONNX model loading and inference."""
+    """Low-memory ONNX Runtime inference service."""
 
     def __init__(self):
-        self.model = None
+        self.encoder = None
+        self.decoder = None
         self.tokenizer = None
-        self.device = "cpu"
-        self._cache = LRUCache(maxsize=256)
+
+        self._cache = LRUCache(maxsize=128)
         self._is_loaded = False
 
+    def _session_options(self):
+        """Create memory-efficient ONNX Runtime settings."""
+
+        options = ort.SessionOptions()
+
+        options.graph_optimization_level = (
+            ort.GraphOptimizationLevel.ORT_ENABLE_BASIC
+        )
+
+        options.enable_mem_pattern = False
+        options.enable_cpu_mem_arena = False
+
+        options.intra_op_num_threads = 1
+        options.inter_op_num_threads = 1
+
+        return options
+
     def load_model(self):
-        """Load BharatBrief ONNX INT8 model."""
+        """Load only encoder and decoder ONNX models."""
 
         settings = get_settings()
 
@@ -57,68 +76,81 @@ class ModelService:
         )
 
         if use_huggingface:
-
             logger.info(
-                f"Loading INT8 model from Hugging Face: "
+                f"Loading low-memory INT8 model from Hugging Face: "
                 f"{HF_MODEL_ID}"
             )
 
-            model_path = HF_MODEL_ID
+            from huggingface_hub import hf_hub_download
 
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                model_path
+            tokenizer_path = HF_MODEL_ID
+
+            encoder_path = hf_hub_download(
+                repo_id=HF_MODEL_ID,
+                filename="encoder_model.onnx",
             )
 
-            self.model = ORTModelForSeq2SeqLM.from_pretrained(
-                model_path,
-                encoder_file_name="encoder_model.onnx",
-                decoder_file_name="decoder_model.onnx",
-                decoder_with_past_file_name=(
-                    "decoder_with_past_model.onnx"
-                ),
-                provider="CPUExecutionProvider",
-                use_io_binding=False,
+            decoder_path = hf_hub_download(
+                repo_id=HF_MODEL_ID,
+                filename="decoder_model.onnx",
             )
 
         else:
-
-            model_path = os.path.join(
-                settings.MODEL_PATH,
-                "..",
-                "bharatbrief_onnx_int8",
+            model_path = os.path.abspath(
+                os.path.join(
+                    settings.MODEL_PATH,
+                    "..",
+                    "bharatbrief_onnx_int8",
+                )
             )
 
-            model_path = os.path.abspath(model_path)
-
             logger.info(
-                f"Loading INT8 model from local path: "
+                f"Loading low-memory INT8 model from: "
                 f"{model_path}"
             )
 
-            self.tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_path = model_path
+            encoder_path = os.path.join(
                 model_path,
-                local_files_only=True,
+                "encoder_model.onnx",
+            )
+            decoder_path = os.path.join(
+                model_path,
+                "decoder_model.onnx",
             )
 
-            self.model = ORTModelForSeq2SeqLM.from_pretrained(
-                model_path,
-                encoder_file_name="encoder_model.onnx",
-                decoder_file_name="decoder_model.onnx",
-                decoder_with_past_file_name=(
-                    "decoder_with_past_model.onnx"
-                ),
-                provider="CPUExecutionProvider",
-                use_io_binding=False,
-            )
+        logger.info("Loading tokenizer...")
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_path
+        )
+
+        options = self._session_options()
+
+        logger.info("Loading encoder session...")
+
+        self.encoder = ort.InferenceSession(
+            encoder_path,
+            sess_options=options,
+            providers=["CPUExecutionProvider"],
+        )
+
+        logger.info("Loading decoder session...")
+
+        self.decoder = ort.InferenceSession(
+            decoder_path,
+            sess_options=options,
+            providers=["CPUExecutionProvider"],
+        )
 
         self._is_loaded = True
 
         logger.info(
-            "BharatBrief INT8 ONNX model loaded successfully"
+            "BharatBrief low-memory INT8 ONNX model loaded"
         )
 
     def warmup(self):
-        """Run a small inference to warm up the model."""
+        """Run a very small inference to initialize ONNX Runtime."""
 
         if not self._is_loaded:
             raise RuntimeError(
@@ -127,21 +159,26 @@ class ModelService:
 
         logger.info("Warming up model...")
 
-        dummy_text = (
-            "summarize: This is a warmup text used "
-            "to initialize the BharatBrief model."
-        )
-
         inputs = self.tokenizer(
-            dummy_text,
-            return_tensors="pt",
-            max_length=64,
+            "summarize: This is a short warmup.",
+            return_tensors="np",
+            max_length=32,
             truncation=True,
         )
 
-        self.model.generate(
-            **inputs,
-            max_length=20,
+        encoder_inputs = {
+            "input_ids": inputs["input_ids"].astype(np.int64),
+            "attention_mask": inputs["attention_mask"].astype(np.int64),
+        }
+
+        encoder_outputs = self.encoder.run(
+            None,
+            encoder_inputs,
+        )
+
+        logger.info(
+            f"Encoder warmup complete. "
+            f"Output shape: {encoder_outputs[0].shape}"
         )
 
         logger.info("Model warmup complete")
@@ -162,7 +199,7 @@ class ModelService:
         self,
         text: str,
         length: str = "medium",
-        num_beams: int = 4,
+        num_beams: int = 1,
         no_repeat_ngram_size: int = 3,
     ) -> str:
 
@@ -177,11 +214,6 @@ class ModelService:
         )
 
         if cache_key in self._cache:
-
-            logger.debug(
-                "Cache hit for summary request"
-            )
-
             return self._cache[cache_key]
 
         settings = get_settings()
@@ -197,25 +229,125 @@ class ModelService:
 
         inputs = self.tokenizer(
             input_text,
-            return_tensors="pt",
-            max_length=settings.MODEL_MAX_INPUT_LENGTH,
+            return_tensors="np",
+            max_length=min(
+                settings.MODEL_MAX_INPUT_LENGTH,
+                512,
+            ),
             truncation=True,
             padding=False,
         )
 
-        outputs = self.model.generate(
-            **inputs,
-            max_length=preset["max_length"],
-            min_length=preset["min_length"],
-            num_beams=num_beams,
-            length_penalty=preset["length_penalty"],
-            no_repeat_ngram_size=no_repeat_ngram_size,
-            do_sample=False,
-            early_stopping=True,
+        input_ids = inputs["input_ids"].astype(np.int64)
+        attention_mask = inputs["attention_mask"].astype(np.int64)
+
+        # -------------------------------------------------
+        # Encoder
+        # -------------------------------------------------
+
+        encoder_inputs = {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+        }
+
+        encoder_outputs = self.encoder.run(
+            None,
+            encoder_inputs,
         )
 
+        encoder_hidden_states = encoder_outputs[0]
+
+        # -------------------------------------------------
+        # Decoder
+        # -------------------------------------------------
+
+        decoder_inputs_info = self.decoder.get_inputs()
+
+        decoder_input_names = {
+            item.name for item in decoder_inputs_info
+        }
+
+        # T5 decoder starts with PAD token.
+        decoder_start_token_id = (
+            self.tokenizer.pad_token_id
+        )
+
+        if decoder_start_token_id is None:
+            decoder_start_token_id = 0
+
+        generated = [
+            decoder_start_token_id
+        ]
+
+        max_length = preset["max_length"]
+
+        # Keep generation bounded for low RAM.
+        max_length = min(max_length, 128)
+
+        for _ in range(max_length - 1):
+
+            decoder_input_ids = np.array(
+                [generated],
+                dtype=np.int64,
+            )
+
+            decoder_attention_mask = np.ones(
+                decoder_input_ids.shape,
+                dtype=np.int64,
+            )
+
+            decoder_inputs = {}
+
+            if "input_ids" in decoder_input_names:
+                decoder_inputs["input_ids"] = (
+                    decoder_input_ids
+                )
+
+            if "decoder_input_ids" in decoder_input_names:
+                decoder_inputs["decoder_input_ids"] = (
+                    decoder_input_ids
+                )
+
+            if "attention_mask" in decoder_input_names:
+                decoder_inputs["attention_mask"] = (
+                    attention_mask
+                )
+
+            if "encoder_attention_mask" in decoder_input_names:
+                decoder_inputs["encoder_attention_mask"] = (
+                    attention_mask
+                )
+
+            if (
+                "encoder_hidden_states"
+                in decoder_input_names
+            ):
+                decoder_inputs[
+                    "encoder_hidden_states"
+                ] = encoder_hidden_states
+
+            outputs = self.decoder.run(
+                None,
+                decoder_inputs,
+            )
+
+            logits = outputs[0]
+
+            next_token = int(
+                np.argmax(
+                    logits[0, -1, :]
+                )
+            )
+
+            generated.append(next_token)
+
+            if next_token == (
+                self.tokenizer.eos_token_id
+            ):
+                break
+
         summary = self.tokenizer.decode(
-            outputs[0],
+            generated,
             skip_special_tokens=True,
         )
 
