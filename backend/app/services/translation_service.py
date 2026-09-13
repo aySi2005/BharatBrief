@@ -1,18 +1,21 @@
 """Translation helpers for multilingual summaries."""
-import logging
-from typing import Dict, Tuple
 
-import torch
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+import logging
+from typing import Dict
+
+from deep_translator import GoogleTranslator
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_LANGUAGE_MODELS: Dict[str, str] = {
-    "hindi": "Helsinki-NLP/opus-mt-en-hi",
-    "french": "Helsinki-NLP/opus-mt-en-fr",
-    "spanish": "Helsinki-NLP/opus-mt-en-es",
-    "arabic": "Helsinki-NLP/opus-mt-en-ar",
+
+LANGUAGE_CODES: Dict[str, str] = {
+    "english": "en",
+    "hindi": "hi",
+    "french": "fr",
+    "spanish": "es",
+    "arabic": "ar",
 }
+
 
 LANGUAGE_ALIASES = {
     "en": "english",
@@ -29,85 +32,144 @@ LANGUAGE_ALIASES = {
 
 
 class TranslationService:
-    """Lazy-load translation models for requested output languages."""
+    """Provides lightweight multilingual translation."""
 
     def __init__(self):
-        self._loaded_models: Dict[str, Tuple[AutoTokenizer, AutoModelForSeq2SeqLM, torch.device]] = {}
+        self._translators = {}
 
-    def normalize_target_language(self, target_language: str | None) -> str | None:
+    def normalize_target_language(
+        self,
+        target_language: str | None,
+    ) -> str | None:
+
         if not target_language:
             return None
 
         normalized = target_language.strip().lower()
-        if normalized in LANGUAGE_ALIASES:
-            return LANGUAGE_ALIASES[normalized]
 
-        return None
+        return LANGUAGE_ALIASES.get(normalized)
 
-    def translate_text(self, text: str, target_language: str | None) -> str:
-        if not text:
+    def _get_translator(
+        self,
+        language: str,
+    ):
+
+        if language not in self._translators:
+
+            target_code = LANGUAGE_CODES[language]
+
+            self._translators[language] = GoogleTranslator(
+                source="auto",
+                target=target_code,
+            )
+
+        return self._translators[language]
+
+    def translate_text(
+        self,
+        text: str,
+        target_language: str | None,
+    ) -> str:
+
+        if not text or not text.strip():
             return text
 
-        normalized_language = self.normalize_target_language(target_language)
-        if not normalized_language or normalized_language == "english":
+        normalized_language = (
+            self.normalize_target_language(
+                target_language
+            )
+        )
+
+        if (
+            not normalized_language
+            or normalized_language == "english"
+        ):
             return text
 
-        if normalized_language not in SUPPORTED_LANGUAGE_MODELS:
+        if normalized_language not in LANGUAGE_CODES:
+
             logger.warning(
-                "Unsupported target language requested: %s. Returning original text.",
+                "Unsupported target language: %s",
                 target_language,
             )
+
             return text
 
-        if normalized_language not in self._loaded_models:
-            self._load_model(normalized_language)
+        try:
 
-        tokenizer, model, device = self._loaded_models[normalized_language]
-
-        inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
-        inputs = {key: value.to(device) for key, value in inputs.items()}
-
-        with torch.no_grad():
-            generated = model.generate(
-                **inputs,
-                max_new_tokens=200,
-                num_beams=4,
-                do_sample=False,
-                early_stopping=True,
+            translator = self._get_translator(
+                normalized_language
             )
 
-        translated = tokenizer.decode(generated[0], skip_special_tokens=True)
-        return translated.strip()
+            translated = translator.translate(
+                text
+            )
 
-    def _load_model(self, language: str) -> None:
-        model_name = SUPPORTED_LANGUAGE_MODELS[language]
-        logger.info("Loading translation model for %s: %s", language, model_name)
+            return translated.strip() if translated else text
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-        model.to(device)
-        model.eval()
+        except Exception as exc:
 
-        self._loaded_models[language] = (tokenizer, model, device)
-        logger.info("Translation model loaded for %s", language)
+            logger.warning(
+                "Translation failed for %s: %s",
+                normalized_language,
+                exc,
+            )
 
-    def translate_response_fields(self, response, target_language: str | None):
-        """Translate summary response fields while preserving verification data."""
-        normalized = self.normalize_target_language(target_language)
-        if not normalized or normalized == "english":
+            return text
+
+    def translate_response_fields(
+        self,
+        response,
+        target_language: str | None,
+    ):
+        """Translate summary fields while preserving verification data."""
+
+        normalized = self.normalize_target_language(
+            target_language
+        )
+
+        if (
+            not normalized
+            or normalized == "english"
+        ):
             return response
 
         try:
-            response.summary = self.translate_text(response.summary, normalized)
+
+            response.summary = self.translate_text(
+                response.summary,
+                normalized,
+            )
+
             if response.headline:
-                response.headline = self.translate_text(response.headline, normalized)
+                response.headline = self.translate_text(
+                    response.headline,
+                    normalized,
+                )
+
             if response.key_points:
-                response.key_points = [self.translate_text(point, normalized) for point in response.key_points]
+                response.key_points = [
+                    self.translate_text(
+                        point,
+                        normalized,
+                    )
+                    for point in response.key_points
+                ]
+
             if response.bullet_summary:
-                response.bullet_summary = self.translate_text(response.bullet_summary, normalized)
+                response.bullet_summary = self.translate_text(
+                    response.bullet_summary,
+                    normalized,
+                )
+
         except Exception as exc:
-            logger.warning("Translation failed for %s: %s. Returning English output.", normalized, exc)
+
+            logger.warning(
+                "Translation failed for %s: %s. "
+                "Returning English output.",
+                normalized,
+                exc,
+            )
 
         return response
 
