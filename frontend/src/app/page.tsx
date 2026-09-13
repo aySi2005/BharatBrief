@@ -88,8 +88,8 @@ export default function Page() {
   className={poppins.className}
   style={{
     minHeight: "100vh",
-    background: "#eef3f5",
-    color: "#0d2d3c",
+    background: "var(--bg-primary)",
+  color: "var(--text-primary)",
   }}
 >
       <section
@@ -112,6 +112,7 @@ export default function Page() {
           }}
         >
           <div
+            className="hero-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "1.2fr 0.8fr",
@@ -324,6 +325,7 @@ export default function Page() {
             }}
           >
             <div
+              className="quick-input-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1.6fr 0.8fr 0.8fr 0.8fr 0.8fr",
@@ -350,7 +352,7 @@ export default function Page() {
                     border: "none",
                     background: "transparent",
                     outline: "none",
-                    color: "#0d2d3c",
+                    color: "var(--text-primary)",
                     fontSize: "1rem",
                   }}
                 />
@@ -377,8 +379,8 @@ export default function Page() {
                   borderRadius: "16px",
                   fontWeight: 700,
                   padding: "16px 18px",
-                  background: "#ffffff",
-                  color: "#0d2d3c",
+                  background: "var(--bg-secondary)",
+                  color: "var(--text-primary)",
                   cursor: "pointer",
                 }}
               >
@@ -391,8 +393,8 @@ export default function Page() {
                   borderRadius: "16px",
                   fontWeight: 700,
                   padding: "16px 18px",
-                  background: "#ffffff",
-                  color: "#0d2d3c",
+                  background: "var(--bg-secondary)",
+                  color: "var(--text-primary)",
                   cursor: "pointer",
                 }}
               >
@@ -405,8 +407,8 @@ export default function Page() {
                   borderRadius: "16px",
                   fontWeight: 700,
                   padding: "16px 18px",
-                  background: "#ffffff",
-                  color: "#0d2d3c",
+                  background: "var(--bg-secondary)",
+                  color: "var(--text-primary)",
                   cursor: "pointer",
                 }}
               >
@@ -419,6 +421,7 @@ export default function Page() {
 
       <section style={{ maxWidth: "1320px", margin: "0 auto", padding: "26px 24px 18px" }}>
         <div
+          className="highlights-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -453,14 +456,14 @@ export default function Page() {
                     alignItems: "center",
                     justifyContent: "center",
                     background: "rgba(77, 101, 138, 0.1)",
-                    color: "#0d2d3c",
+                    color: "#315b7a",
                   }}
                 >
                   <Icon size={18} />
                 </div>
                 <div>
-                  <div style={{ fontSize: "1.9rem", fontWeight: 900, lineHeight: 1 }}>{item.value}</div>
-                  <div style={{ marginTop: "6px", fontSize: "0.9rem", color: "#5c7080" }}>{item.label}</div>
+                  <div style={{ fontSize: "1.9rem", fontWeight: 900, lineHeight: 1, color: "#17324d" }}>{item.value}</div>
+                  <div style={{ marginTop: "6px", fontSize: "0.9rem", color: "#4f687d" }}>{item.label}</div>
                 </div>
               </div>
             );
@@ -492,7 +495,7 @@ export default function Page() {
               style={{
                 margin: 0,
                 fontSize: "clamp(2rem, 4vw, 2.8rem)",
-                color: "#0d2d3c",
+                color: "var(--text-primary)",
                 letterSpacing: "-0.04em",
                 fontWeight: 700,
               }}
@@ -506,7 +509,7 @@ export default function Page() {
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              color: "#0d2d3c",
+              color: "var(--text-primary)",
               textDecoration: "none",
               fontWeight: 700,
             }}
@@ -518,6 +521,7 @@ export default function Page() {
 
         <div
           id="services"
+          className="services-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -566,8 +570,8 @@ export default function Page() {
                 </div>
 
                 <div>
-                  <h3 style={{ margin: 0, fontSize: "1.4rem", color: "#0d2d3c" }}>{service.title}</h3>
-                  <p style={{ margin: "12px 0 0", color: "#536c7d", lineHeight: 1.7 }}>{service.text}</p>
+                  <h3 style={{ margin: 0, fontSize: "1.4rem", color: "var(--text-primary)" }}>{service.title}</h3>
+                  <p style={{ margin: "12px 0 0", color: "var(--text-secondary)", lineHeight: 1.7 }}>{service.text}</p>
                 </div>
               </div>
             );
@@ -599,7 +603,7 @@ export default function Page() {
               style={{
                 margin: 0,
                 fontSize: "clamp(2rem, 4vw, 2.8rem)",
-                color: "#0d2d3c",
+                color: "var(--text-primary)",
                 letterSpacing: "-0.04em",
               }}
             >
@@ -612,7 +616,7 @@ export default function Page() {
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              color: "#0d2d3c",
+              color: "var(--text-primary)",
               textDecoration: "none",
               fontWeight: 700,
             }}
@@ -624,6 +628,7 @@ export default function Page() {
 
         <div
           id="categories"
+          className="categories-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
@@ -634,7 +639,7 @@ export default function Page() {
             <div
               key={category.title}
               style={{
-                background: "#ffffff",
+                background: "var(--bg-secondary)",
                 border: "1px solid #e5edf4",
                 borderRadius: "22px",
                 padding: "24px 20px",
@@ -647,7 +652,7 @@ export default function Page() {
                   height: "44px",
                   borderRadius: "14px",
                   background: ["#e2ebff", "#e5f9f0", "#fff0d9", "#ffe4e6", "#f0ebff", "#edf6ff"][index % 6],
-                  color: "#0d2d3c",
+                  color: "var(--text-primary)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -657,8 +662,8 @@ export default function Page() {
               >
                 {category.title.charAt(0)}
               </div>
-              <h3 style={{ margin: "18px 0 10px", fontSize: "1.35rem", color: "#0d2d3c" }}>{category.title}</h3>
-              <p style={{ margin: 0, color: "#5f7281", lineHeight: 1.7 }}>{category.text}</p>
+              <h3 style={{ margin: "18px 0 10px", fontSize: "1.35rem", color: "var(--text-primary)" }}>{category.title}</h3>
+              <p style={{ margin: 0, color: "var(--text-secondary)", lineHeight: 1.7 }}>{category.text}</p>
             </div>
           ))}
         </div>
@@ -666,12 +671,13 @@ export default function Page() {
 
       <section style={{ maxWidth: "1320px", margin: "0 auto", padding: "64px 24px 18px" }}>
         <div style={{ textAlign: "center", marginBottom: "30px" }}>
-          <h2 style={{ margin: 0, fontSize: "clamp(2rem, 4vw, 2.8rem)", color: "#0d2d3c", letterSpacing: "-0.04em" }}>
+          <h2 style={{ margin: 0, fontSize: "clamp(2rem, 4vw, 2.8rem)", color: "var(--text-primary)", letterSpacing: "-0.04em" }}>
             How It Works
           </h2>
         </div>
 
         <div
+          className="steps-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
@@ -682,7 +688,7 @@ export default function Page() {
             <div
               key={step.number}
               style={{
-                background: "#ffffff",
+                background: "var(--bg-secondary)",
                 border: "1px solid #e5edf4",
                 borderRadius: "24px",
                 padding: "28px 22px",
@@ -692,8 +698,8 @@ export default function Page() {
               <div style={{ color: "#ff6659", fontSize: "0.82rem", fontWeight: 800, letterSpacing: "0.12em", marginBottom: "14px" }}>
                 {step.number}
               </div>
-              <h3 style={{ margin: 0, fontSize: "1.6rem", color: "#0d2d3c" }}>{step.title}</h3>
-              <p style={{ margin: "12px 0 0", color: "#5f7281", lineHeight: 1.7 }}>{step.text}</p>
+              <h3 style={{ margin: 0, fontSize: "1.6rem", color: "var(--text-primary)" }}>{step.title}</h3>
+              <p style={{ margin: "12px 0 0", color: "var(--text-secondary)", lineHeight: 1.7 }}>{step.text}</p>
             </div>
           ))}
         </div>
@@ -701,12 +707,13 @@ export default function Page() {
 
       <section style={{ maxWidth: "1320px", margin: "0 auto", padding: "64px 24px 18px" }}>
         <div style={{ textAlign: "center", marginBottom: "30px" }}>
-          <h2 style={{ margin: 0, fontSize: "clamp(2rem, 4vw, 2.8rem)", color: "#0d2d3c", letterSpacing: "-0.04em" }}>
+          <h2 style={{ margin: 0, fontSize: "clamp(2rem, 4vw, 2.8rem)", color: "var(--text-primary)", letterSpacing: "-0.04em" }}>
             Why BharatBrief
           </h2>
         </div>
 
         <div
+          className="trust-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -733,13 +740,13 @@ export default function Page() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#0d2d3c",
+                  color: "var(--text-primary)",
                 }}
               >
                 <Sparkles size={20} />
               </div>
-              <h3 style={{ margin: "18px 0 10px", fontSize: "1.45rem", color: "#0d2d3c" }}>{item.title}</h3>
-              <p style={{ margin: 0, color: "#5f7281", lineHeight: 1.7 }}>{item.text}</p>
+              <h3 style={{ margin: "18px 0 10px", fontSize: "1.45rem", color: "var(--text-primary)" }}>{item.title}</h3>
+              <p style={{ margin: 0, color: "var(--text-secondary)", lineHeight: 1.7 }}>{item.text}</p>
             </div>
           ))}
         </div>
@@ -799,6 +806,7 @@ export default function Page() {
   }}
 >
   <div
+    className="footer-grid"
     style={{
       maxWidth: "1450px",
       margin: "0 auto",
@@ -941,6 +949,181 @@ export default function Page() {
     Made in India
   </div>
 </footer>
+      <style jsx global>{`
+        * { box-sizing: border-box; }
+        html, body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          overflow-x: hidden;
+        }
+
+        @media (max-width: 1100px) {
+          .hero-grid {
+            grid-template-columns: 1fr 0.9fr !important;
+          }
+
+          .quick-input-grid {
+            grid-template-columns: 1.5fr 1fr 1fr 1fr !important;
+          }
+
+          .quick-input-grid > div:first-child {
+            grid-column: 1 / -1;
+          }
+
+          .highlights-grid,
+          .services-grid,
+          .trust-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .categories-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .steps-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+
+          .footer-grid {
+            grid-template-columns: 1fr 1.5fr 1fr !important;
+          }
+
+          .footer-grid > div:last-child {
+            grid-column: 1 / -1;
+          }
+        }
+
+        @media (max-width: 800px) {
+          .hero-grid {
+            grid-template-columns: 1fr !important;
+            gap: 36px !important;
+          }
+
+          .hero-grid > div:last-child {
+            max-width: 520px;
+            width: 100%;
+            margin: 0 auto;
+          }
+
+          .quick-input-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+
+          .quick-input-grid > div:first-child {
+            grid-column: 1 / -1;
+          }
+
+          .highlights-grid,
+          .services-grid,
+          .categories-grid,
+          .trust-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+
+          .steps-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .footer-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 24px !important;
+          }
+
+          .footer-grid > div:last-child {
+            grid-column: 1 / -1;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .hero-grid {
+            gap: 28px !important;
+            padding-top: 16px !important;
+          }
+
+          .hero-grid h1 {
+            font-size: clamp(2.7rem, 14vw, 4.2rem) !important;
+          }
+
+          .hero-grid p {
+            font-size: 1rem !important;
+          }
+
+          .hero-grid a {
+            width: 100%;
+          }
+
+          .quick-input-grid,
+          .highlights-grid,
+          .services-grid,
+          .categories-grid,
+          .steps-grid,
+          .trust-grid,
+          .footer-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .quick-input-grid {
+            gap: 10px !important;
+          }
+
+          .quick-input-grid > div:first-child {
+            grid-column: auto;
+          }
+
+          .quick-input-grid button {
+            width: 100%;
+          }
+
+          .highlights-grid {
+            gap: 12px !important;
+          }
+
+          .services-grid,
+          .categories-grid,
+          .steps-grid,
+          .trust-grid {
+            gap: 14px !important;
+          }
+
+          .footer-grid {
+            text-align: center !important;
+            padding: 28px 18px !important;
+            gap: 24px !important;
+          }
+
+          .footer-grid > div {
+            width: 100%;
+            grid-column: auto !important;
+          }
+
+          section > div {
+            max-width: 100%;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .hero-grid h1 {
+            letter-spacing: -0.055em !important;
+          }
+
+          .hero-grid p {
+            line-height: 1.5 !important;
+          }
+
+          .hero-grid > div:last-child {
+            max-width: 100%;
+          }
+
+          .highlights-grid > div {
+            padding: 16px 14px !important;
+          }
+
+          .highlights-grid > div > div:last-child > div:first-child {
+            font-size: 1.65rem !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }

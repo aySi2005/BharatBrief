@@ -114,9 +114,16 @@ export default function SummarizePage() {
 
   const s = {
   section: {
-    maxWidth: "1400px",
+    width: "98%",
+    maxWidth: "2500px",
     margin: "0 auto",
-    padding: "55px 40px 80px",
+    padding: "55px  80px",
+        minHeight: "calc(100vh - 64px)",
+    backgroundImage:
+      " url('https://unilamp.co.th/userfiles/unilamp/images/Projects/Bharat%20Mandapam%2C%20Venue%20of%20G20%20summit%2C%20Pragati%20Maidan/Bharat%20Mandapam%2C%20Venue%20of%20G20%20summit%2013.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundAttachment: "fixed",
   } as React.CSSProperties
 };
   return (
@@ -130,14 +137,14 @@ export default function SummarizePage() {
     fontWeight: 500,
     letterSpacing: "-0.04em",
     margin: 0,
-    color: "#0b3445",
+    color: "var(--text-primary)",
   }}
 >
   Summarize
 </h1>
         <p
   style={{
-    color: "#60758a",
+    color: "var(--text-primary)",
     marginTop: "10px",
     fontSize: "1rem",
     lineHeight: 1.7,
@@ -287,13 +294,37 @@ export default function SummarizePage() {
               </select>
             </label>
 
-            <button onClick={() => store.setExternalFactCheckEnabled(!store.externalFactCheckEnabled)} style={{
-              display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-default)", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer",
-              backgroundColor: store.externalFactCheckEnabled ? "var(--accent-primary-light)" : "var(--bg-card)",
-              color: store.externalFactCheckEnabled ? "var(--accent-primary)" : "var(--text-tertiary)", transition: "all 0.2s ease",
-            }}>
-              <CheckCircle2 size={14} /> {store.externalFactCheckEnabled ? "External check on" : "External check off"}
-            </button>
+          <button
+            onClick={() =>
+              store.setExternalFactCheckEnabled(!store.externalFactCheckEnabled)
+            }
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 14px",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border-default)",
+              fontSize: "0.8125rem",
+              fontWeight: 700,
+              cursor: "pointer",
+
+              backgroundColor: store.externalFactCheckEnabled
+                ? "var(--bg-secondary)"
+                : "var(--bg-card)",
+
+              color: store.externalFactCheckEnabled
+                ? "var(--text-primary)"
+                : "var(--text-tertiary)",
+
+              transition: "all 0.2s ease",
+            }}
+          >
+            <CheckCircle2 size={14} />
+            {store.externalFactCheckEnabled
+              ? "External check on"
+              : "External check off"}
+          </button>
           </div>
 
           {/* Submit Button */}
@@ -483,7 +514,7 @@ export default function SummarizePage() {
     fontSize: "1.25rem",
     fontWeight: 500,
     marginBottom: "8px",
-    color: "#0b3445",
+    ccolor: "var(--text-primary)",
   }}
 >Your summary will appear here</h3>
               <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", maxWidth: "300px", lineHeight: 1.6 }}>Paste an article, enter a URL, or upload a document to get started.</p>

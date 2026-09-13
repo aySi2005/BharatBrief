@@ -100,7 +100,7 @@ async def summarize_text(
     try:
         summary = model_service.summarize(
             text=request.text,
-            length=request.length,
+            max_length=request.length,
         )
         
         db_id = None
@@ -206,7 +206,7 @@ async def summarize_url(
     try:
         summary = model_service.summarize(
             text=article.text,
-            length=request.length,
+            max_length=request.length,
         )
         
         metadata = ArticleMetadata(

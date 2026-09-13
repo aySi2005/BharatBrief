@@ -84,20 +84,7 @@ export function Navbar() {
           >
             BharatBrief
           </span>
-          <span
-            style={{
-              fontSize: "0.625rem",
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--accent-primary)",
-              backgroundColor: "var(--accent-primary-light)",
-              padding: "2px 6px",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
-            AI
-          </span>
+          
         </Link>
 
         {/* Desktop Nav */}

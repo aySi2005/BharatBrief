@@ -246,3 +246,65 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+/* =========================
+   MOBILE RESPONSIVE
+   ========================= */
+
+@media (max-width: 768px) {
+
+  /* Hero */
+  .hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+    padding-top: 20px !important;
+  }
+
+  /* Hero text */
+  .hero-grid h1 {
+    font-size: clamp(2.8rem, 13vw, 4.5rem) !important;
+  }
+
+  /* Stats */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Services */
+  .services-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Categories */
+  .categories-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* How it works */
+  .steps-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Why BharatBrief */
+  .trust-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Footer */
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+    padding: 30px 20px !important;
+    gap: 28px !important;
+  }
+
+}
+
+
+/* Small phones */
+@media (max-width: 480px) {
+
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+}

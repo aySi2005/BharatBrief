@@ -17,12 +17,17 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 LOCAL_MODEL_DIR = BASE_DIR / "model" / "bharatbrief_ct2_int8"
 
 
+
 class ModelService:
     def __init__(self):
         self.translator = None
         self.tokenizer = None
         self.model = None
         self.loaded = False
+
+    @property
+    def is_loaded(self):
+        return self.loaded
 
     def load_model(self):
         if self.loaded:
@@ -127,6 +132,17 @@ class ModelService:
         min_length: int = 15,
     ) -> str:
 
+        # Convert frontend summary length to model token length
+        if isinstance(max_length, str):
+            length_map = {
+                "short": 60,
+                "medium": 128,
+                "detailed": 256,
+            }
+            max_length = length_map.get(max_length.lower(), 128)
+
+         
+
         if not self.loaded:
             self.load_model()
 
@@ -175,6 +191,5 @@ class ModelService:
         )
 
         return summary.strip()
-
 
 model_service = ModelService()
