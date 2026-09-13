@@ -36,8 +36,12 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
-    
+# CORS
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://bharatbrief.vercel.app",
+    ]
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 30
 
