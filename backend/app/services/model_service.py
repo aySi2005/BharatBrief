@@ -1,256 +1,175 @@
-"""BharatBrief T5 Model Service - CTranslate2 INT8 inference."""
-
-import hashlib
 import logging
 import os
+from pathlib import Path
 
 import ctranslate2
-from cachetools import LRUCache
+from huggingface_hub import hf_hub_download
 from transformers import AutoTokenizer
 
-from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-LENGTH_PRESETS = {
-    "short": {
-        "max_length": 60,
-        "min_length": 15,
-    },
-    "medium": {
-        "max_length": 128,
-        "min_length": 30,
-    },
-    "detailed": {
-        "max_length": 128,
-        "min_length": 60,
-    },
-}
 
 HF_MODEL_ID = "Ayush1082/BharatBrief-T5-CT2-INT8"
+TOKENIZER_ID = "Ayush1082/BharatBrief-T5"
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+LOCAL_MODEL_DIR = BASE_DIR / "model" / "bharatbrief_ct2_int8"
 
 
 class ModelService:
-    """Manages BharatBrief CTranslate2 model."""
-
     def __init__(self):
-        self.model = None
+        self.translator = None
         self.tokenizer = None
-        self._cache = LRUCache(maxsize=128)
-        self._is_loaded = False
+        self.model = None
+        self.loaded = False
 
     def load_model(self):
-        """Load BharatBrief CTranslate2 INT8 model."""
+        if self.loaded:
+            return
 
-        settings = get_settings()
+        logger.info("=" * 60)
+        logger.info("Loading BharatBrief CTranslate2 INT8 model")
+        logger.info("=" * 60)
 
-        use_huggingface = (
-            os.getenv(
-                "USE_HUGGINGFACE_MODEL",
-                "false",
-            ).lower()
-            == "true"
-        )
-
-        if use_huggingface:
-
-            logger.info(
-                f"Loading CTranslate2 INT8 model from "
-                f"Hugging Face: {HF_MODEL_ID}"
+        try:
+            use_huggingface = (
+                os.getenv("USE_HUGGINGFACE_MODEL", "true").lower() == "true"
             )
 
-            from huggingface_hub import snapshot_download
-
-            model_path = snapshot_download(
-                repo_id=HF_MODEL_ID,
-                allow_patterns=[
-                    "model.bin",
-                    "config.json",
-                    "shared_vocabulary.json",
-                ],
-            )
-
-            tokenizer_path = snapshot_download(
-                repo_id="Ayush1082/BharatBrief-T5",
-                allow_patterns=[
-                    "tokenizer.json",
-                    "tokenizer_config.json",
-                    "special_tokens_map.json",
-                    "spiece.model",
-                ],
-            )
-
-        else:
-
-            model_path = os.path.abspath(
-                os.path.join(
-                    settings.MODEL_PATH,
-                    "..",
-                    "bharatbrief_ct2_int8",
+            # ---------------------------------------------------------
+            # Locate CTranslate2 model
+            # ---------------------------------------------------------
+            if use_huggingface:
+                logger.info(
+                    f"Downloading CTranslate2 model from Hugging Face: {HF_MODEL_ID}"
                 )
+
+                model_bin = hf_hub_download(
+                    repo_id=HF_MODEL_ID,
+                    filename="model.bin",
+                )
+
+                config_file = hf_hub_download(
+                    repo_id=HF_MODEL_ID,
+                    filename="config.json",
+                )
+
+                vocabulary_file = hf_hub_download(
+                    repo_id=HF_MODEL_ID,
+                    filename="shared_vocabulary.json",
+                )
+
+                model_dir = Path(model_bin).parent
+
+                logger.info(f"CTranslate2 model directory: {model_dir}")
+
+            else:
+                model_dir = LOCAL_MODEL_DIR
+
+                if not model_dir.exists():
+                    raise FileNotFoundError(
+                        f"Local CTranslate2 model not found: {model_dir}"
+                    )
+
+            # ---------------------------------------------------------
+            # Load tokenizer
+            # ---------------------------------------------------------
+            logger.info(f"Loading tokenizer from: {TOKENIZER_ID}")
+
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                TOKENIZER_ID,
+                use_fast=True,
             )
 
-            tokenizer_path = os.path.abspath(
-                settings.MODEL_PATH
+            # ---------------------------------------------------------
+            # Load CTranslate2
+            # ---------------------------------------------------------
+            logger.info("Loading CTranslate2 INT8 model...")
+
+            self.translator = ctranslate2.Translator(
+                str(model_dir),
+                device="cpu",
+                inter_threads=1,
+                intra_threads=1,
             )
 
-            logger.info(
-                f"Loading CTranslate2 model from: "
-                f"{model_path}"
-            )
+            self.model = self.translator
 
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_path,
-            local_files_only=not use_huggingface,
-        )
+            self.loaded = True
 
-        self.model = ctranslate2.Translator(
-            model_path,
-            device="cpu",
-            inter_threads=1,
-            intra_threads=1,
-        )
+            logger.info("BharatBrief CTranslate2 INT8 model loaded successfully")
 
-        self._is_loaded = True
+            # ---------------------------------------------------------
+            # Warmup
+            # ---------------------------------------------------------
+            try:
+                self.summarize(
+                    "BharatBrief is an AI-powered article summarization system."
+                )
+                logger.info("Model warmup completed")
+            except Exception as warmup_error:
+                logger.warning(f"Warmup failed: {warmup_error}")
 
-        logger.info(
-            "BharatBrief CTranslate2 INT8 model loaded successfully"
-        )
-
-    def warmup(self):
-        """Run a tiny inference to initialize the model."""
-
-        if not self._is_loaded:
-            raise RuntimeError(
-                "Model not loaded. Call load_model() first."
-            )
-
-        logger.info("Warming up model...")
-
-        tokens = self.tokenizer.convert_ids_to_tokens(
-            self.tokenizer(
-                "summarize: This is a short warmup.",
-                add_special_tokens=True,
-            )["input_ids"]
-        )
-
-        self.model.translate_batch(
-            [tokens],
-            beam_size=1,
-            max_decoding_length=20,
-            min_decoding_length=1,
-        )
-
-        logger.info("Model warmup complete")
-
-    def _get_cache_key(
-        self,
-        text: str,
-        length: str,
-    ) -> str:
-
-        content = f"{text}::{length}"
-
-        return hashlib.md5(
-            content.encode()
-        ).hexdigest()
+        except Exception:
+            logger.exception("Failed to load BharatBrief model")
+            raise
 
     def summarize(
         self,
         text: str,
-        length: str = "medium",
-        num_beams: int = 1,
-        no_repeat_ngram_size: int = 3,
+        max_length: int = 128,
+        min_length: int = 15,
     ) -> str:
 
-        if not self._is_loaded:
-            raise RuntimeError(
-                "Model not loaded. Call load_model() first."
-            )
+        if not self.loaded:
+            self.load_model()
 
-        cache_key = self._get_cache_key(
-            text,
-            length,
-        )
+        if not text or not text.strip():
+            return ""
 
-        if cache_key in self._cache:
-            return self._cache[cache_key]
+        text = text.strip()
 
-        settings = get_settings()
+        # Prevent excessive memory usage
+        text = text[:12000]
 
-        preset = LENGTH_PRESETS.get(
-            length,
-            LENGTH_PRESETS["medium"],
-        )
+        input_text = "summarize: " + text
 
-        input_text = (
-            f"{settings.MODEL_PREFIX} {text}"
-        )
-
+        # Convert text to T5 tokens
         encoded = self.tokenizer(
             input_text,
-            max_length=min(
-                settings.MODEL_MAX_INPUT_LENGTH,
-                512,
-            ),
-            truncation=True,
             add_special_tokens=True,
+            truncation=True,
+            max_length=512,
         )
 
-        tokens = self.tokenizer.convert_ids_to_tokens(
+        input_tokens = self.tokenizer.convert_ids_to_tokens(
             encoded["input_ids"]
         )
 
-        # CTranslate2 generation.
-        results = self.model.translate_batch(
-            [tokens],
-            beam_size=max(1, min(num_beams, 2)),
-            max_decoding_length=preset["max_length"],
-            min_decoding_length=preset["min_length"],
+        # Generate summary
+        results = self.translator.translate_batch(
+            [input_tokens],
+            beam_size=2,
+            max_decoding_length=max_length,
+            min_decoding_length=min_length,
             repetition_penalty=1.2,
-            no_repeat_ngram_size=no_repeat_ngram_size,
+            no_repeat_ngram_size=3,
         )
 
         output_tokens = results[0].hypotheses[0]
 
-        output_ids = (
-            self.tokenizer.convert_tokens_to_ids(
-                output_tokens
-            )
+        output_ids = self.tokenizer.convert_tokens_to_ids(
+            output_tokens
         )
 
         summary = self.tokenizer.decode(
             output_ids,
             skip_special_tokens=True,
+            clean_up_tokenization_spaces=True,
         )
 
-        self._cache[cache_key] = summary
-
-        logger.debug(
-            f"Generated summary ({length}): "
-            f"{len(summary)} chars"
-        )
-
-        return summary
-
-    def get_token_count(
-        self,
-        text: str,
-    ) -> int:
-
-        if not self._is_loaded:
-            return len(text.split())
-
-        tokens = self.tokenizer.encode(
-            text,
-            add_special_tokens=False,
-        )
-
-        return len(tokens)
-
-    @property
-    def is_loaded(self) -> bool:
-        return self._is_loaded
+        return summary.strip()
 
 
 model_service = ModelService()
